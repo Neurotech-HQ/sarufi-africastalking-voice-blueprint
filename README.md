@@ -1,3 +1,5 @@
+<samp>
+
 # Sarufi Africa's Talking Voice Blueprint
 
 This repository contains a FastAPI application for handling voice call requests, specifically designed for integration with Africa's Talking Voice API. The application utilizes the Sarufi library for natural language processing in voice interactions.
@@ -52,3 +54,4 @@ Contributions to this project are welcome. Please fork the repository and submit
 
 This project is licensed under the MIT License.
 
+</samp>
