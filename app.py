@@ -28,18 +28,20 @@ async def voicemail(request: Request):
     """
     try:
         form_data = await request.form()
-        session_id = form_data["sessionId"]
-        is_active = int(form_data["isActive"])
+        session_id = form_data.get("sessionId")
+        call_number = form_data.get("callerNumber") 
+        is_active = int(form_data.get("isActive"))
         dtfm_digits = form_data.get("dtmfDigits", None)
+        sarufi_chat_id = f'{call_number}-{session_id}'
         if dtfm_digits:
             dtfm_digits = int(dtfm_digits.strip())
 
         if is_active == 1:
             # If the call is active, respond with a message and play an audio file
             sarufi_response = (
-                sarufi_bot.respond("start")
+                sarufi_bot.respond("start", chat_id=sarufi_chat_id)
                 if not dtfm_digits
-                else sarufi_bot.respond(dtfm_digits)
+                else sarufi_bot.respond(dtfm_digits, chat_id=sarufi_chat_id)
             )
             s_response = ".".join(sarufi_response.get("message"))
             next_state = sarufi_response.get("next_state")
