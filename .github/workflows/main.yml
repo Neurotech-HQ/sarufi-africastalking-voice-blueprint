@@ -5,7 +5,7 @@ on:
   push:
     branches:
       # Push events on main branch
-      - lambda-zip
+      - main
 
 # The Job defines a series of steps that execute on the same runner.
 jobs:
