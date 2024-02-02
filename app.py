@@ -15,7 +15,7 @@ sarufi_bot = sarufi.get_bot(os.getenv("SARUFI_BOT_ID"))
 app = FastAPI()
 
 
-@app.post("/voicemail")
+@app.post("/")
 async def voicemail(request: Request):
     """
     Handle incoming voice call requests.
