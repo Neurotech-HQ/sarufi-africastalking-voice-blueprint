@@ -1,4 +1,5 @@
 import os
+import random
 from sarufi import Sarufi
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
@@ -29,39 +30,70 @@ async def voicemail(request: Request):
     try:
         form_data = await request.form()
         session_id = form_data.get("sessionId")
-        call_number = form_data.get("callerNumber") 
+        call_number = form_data.get("callerNumber")
         is_active = int(form_data.get("isActive"))
         dtfm_digits = form_data.get("dtmfDigits", None)
-        sarufi_chat_id = f'{call_number}-{session_id}'
+        sarufi_chat_id = f"{call_number}-{session_id}"
         if dtfm_digits:
             dtfm_digits = int(dtfm_digits.strip())
 
         if is_active == 1:
             # If the call is active, respond with a message and play an audio file
             sarufi_response = (
-                sarufi_bot.respond("start", chat_id=sarufi_chat_id)
+                sarufi_bot.respond("start", chat_id=sarufi_chat_id, channel="whatsapp")
                 if not dtfm_digits
-                else sarufi_bot.respond(dtfm_digits, chat_id=sarufi_chat_id)
+                else sarufi_bot.respond(dtfm_digits, chat_id=sarufi_chat_id, channel="whatsapp")
             )
-            s_response = ".".join(sarufi_response.get("message"))
+
+            print(sarufi_response)
             next_state = sarufi_response.get("next_state")
+            if sarufi_response.get("actions"):
+                actions = sarufi_response.get("actions")
+                for action in actions:
+                    if action.get("send_audios"):
+                        s_response = action.get("send_audios")
+                        url_obj = random.choice(s_response)
+                        if url_obj.get("link"):
+                            s_response = url_obj.get("link")
+                            if s_response:
+                                if next_state != "end":
+                                    response = VoiceResponse.get_digits(
+                                        s_response, action="play"
+                                    )
+                                else:
+                                    response = VoiceResponse.play(s_response)
 
-            if s_response:
-                sarufi_response = "Please listen to our awesome record"
-                if next_state != "end":
-                    response = VoiceResponse.get_digits(s_response)
-                else:
-                    response = VoiceResponse.say(s_response)
-            else:
-                response = VoiceResponse.say(sarufi_response)
-
-            template = """<?xml version="1.0" encoding="UTF-8"?>
-                        <Response>
-                        {response}
-                        </Response>"""
-            response = template.format(response=response)
-            return Response(content=response, media_type="application/xml")
-
+                                template = (
+                                    '<?xml version="1.0" encoding="UTF-8"?>'
+                                    "<Response>"
+                                    f"{response}"
+                                    "</Response>"
+                                )
+                                response = template.format(response=response)
+                                print(response)
+                                return Response(
+                                    content=response, media_type="application/xml"
+                                )
+                            print("No audio link found 1")
+                        print("No audio link found 2")
+                    if action.get("send_message"):
+                        s_response = action.get("send_message")
+                        s_response = ".".join(s_response)
+                        if s_response and s_response != ".":
+                            if next_state != "end":
+                                response = VoiceResponse.get_digits(s_response)
+                            else:
+                                response = VoiceResponse.say(s_response)
+                            template = (
+                                '<?xml version="1.0" encoding="UTF-8"?>'
+                                "<Response>"
+                                f"{response}"
+                                "</Response>"
+                            )
+                            response = template.format(response=response)
+                            return Response(
+                                content=response, media_type="application/xml"
+                            )
         else:
             # If the call is not active, read in call details
             duration = form_data["durationInSeconds"]
@@ -81,8 +113,6 @@ async def voicemail(request: Request):
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 
-
-
 class VoiceResponse:
     """
     Class to handle voice response.
@@ -94,10 +124,17 @@ class VoiceResponse:
 
     @staticmethod
     def play(response):
-        return f"<Play>{response}</Play>"
+        return f'<Play url="{response}" />'
 
     @staticmethod
-    def get_digits(response, timeout=20, finishOnKey="#"):
+    def get_digits(response, timeout=20, finishOnKey="#", action="say"):
+        if action == "play":
+            action = f'<Play url="{response}" />'
+            return f"""
+                <GetDigits timeout="{timeout}" finishOnKey="{finishOnKey}">
+                    {action}
+                </GetDigits>
+                """
         return f"""
                 <GetDigits timeout="{timeout}" finishOnKey="{finishOnKey}">
                     <Say>{response}</Say>
