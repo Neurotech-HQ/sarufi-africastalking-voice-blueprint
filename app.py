@@ -4,6 +4,7 @@ from sarufi import Sarufi
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import Response
+from mangum import Mangum
 
 
 # Load environment variables
@@ -14,6 +15,7 @@ sarufi = Sarufi(api_key=os.getenv("SARUFI_API_KEY"))
 sarufi_bot = sarufi.get_bot(os.getenv("SARUFI_BOT_ID"))
 
 app = FastAPI()
+handler = Mangum(app)
 
 
 @app.post("/")
